@@ -1,0 +1,6 @@
+# Ignorar archivos compilados y temporales
+bin/
+obj/
+.vs/
+.vscode/
+appsettings.Development.json

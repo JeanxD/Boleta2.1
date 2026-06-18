@@ -1,0 +1,336 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Emisión de Boleta Electrónica - Floany Visión</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        
+        @@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+        
+        body { background-color: #212529; }
+        .boleta-wrapper { font-family: Arial, sans-serif; background: white; padding: 30px; font-size: 11px; color: black; max-width: 850px; margin: auto; }
+        .box-border { border: 1.5px solid #000; padding: 10px; margin-bottom: 10px; }
+        
+        /* Cabecera */
+        .header-grid { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .company-info { width: 60%; }
+        .company-logo { font-size: 36px; font-weight: 900; color: #1a365d; font-style: italic; margin-bottom: 0; letter-spacing: -1px; }
+        .company-sub { font-size: 11px; font-weight: bold; margin-bottom: 15px; color: #555; }
+        .sunat-box { width: 35%; text-align: center; font-size: 14px; padding: 15px 0; border-radius: 8px; }
+        .sunat-box h3 { font-size: 18px; font-weight: bold; margin: 10px 0; }
+        
+        /* Datos Cliente */
+        .client-grid { display: flex; justify-content: space-between; }
+        .client-col { width: 48%; }
+        .data-row { display: flex; margin-bottom: 4px; }
+        .data-label { width: 130px; font-weight: bold; }
+        .data-value { flex: 1; text-transform: uppercase; }
+
+        /* Tabla de Productos */
+        .table-sunat { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 10px; }
+        .table-sunat th, .table-sunat td { border: 1px solid #000; padding: 6px; text-align: center; font-size: 10px; }
+        .table-sunat th { background-color: #f8f9fa; font-weight: bold; }
+        .desc-col { text-align: left !important; width: 35%; }
+        .monto-financiero { font-family: 'Roboto Mono', monospace; text-align: right !important; padding-right: 10px !important; }
+
+        /* Totales */
+        .totals-container { display: flex; justify-content: space-between; margin-top: 15px; align-items: flex-start; }
+        .amount-words { font-weight: bold; text-transform: uppercase; width: 60%; padding: 10px; border: 1px solid #000; background: #f8f9fa; }
+        .totals-table { width: 35%; border-collapse: collapse; }
+        .totals-table td { border: 1px solid #000; padding: 5px; }
+        .totals-table td.total-label { font-weight: bold; background-color: #f8f9fa; width: 65%; text-align: left; }
+        .totals-table td.total-value { font-family: 'Roboto Mono', monospace; text-align: right; font-weight: bold; }
+
+        /* Footer y QR */
+        .comments-box { min-height: 50px; margin-top: 15px; border-radius: 5px; }
+        .footer-grid { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 20px; }
+        .footer-text { text-align: center; font-size: 9px; font-weight: bold; }
+        #qrcode img { display: block; margin: 0 auto; border: 2px solid #000; padding: 2px; }
+    </style>
+</head>
+<body class="p-3">
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card p-4 shadow border-0 rounded-3">
+                <h5 class="text-primary fw-bold mb-3">Terminal POS - Floany</h5>
+                
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">DNI Cliente:</label>
+                    <input type="text" id="inDNI" class="form-control" value="72937145">
+                </div>
+                
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Nombre / Razón Social:</label>
+                    <input type="text" id="inNombre" class="form-control" value="SANTAMARIA SILUPU GIANFRANK">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Dirección:</label>
+                    <input type="text" id="inDireccion" class="form-control" value="SAN JUAN DE LURIGANCHO - LIMA">
+                </div>
+
+                <div class="p-3 bg-light rounded border">
+                    <label class="form-label small fw-bold text-success">Producto / Servicio:</label>
+                    <input type="text" id="inProducto" class="form-control mb-2" value="MONTURA OFTÁLMICA RAY-BAN RX5154">
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Cantidad:</label>
+                            <input type="number" id="inCantidad" class="form-control" value="1">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Precio (Inc. IGV):</label>
+                            <input type="number" id="inPrecio" class="form-control" value="150.00">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary w-100 mt-4 shadow-sm" onclick="calcularYGenerar()">
+                    <i class="bi bi-arrow-clockwise"></i> Procesar Documento
+                </button>
+                <button class="btn btn-danger w-100 mt-2 shadow-sm" onclick="descargarPDF()">
+                    <i class="bi bi-file-earmark-pdf"></i> Imprimir PDF (SUNAT)
+                </button>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div id="boleta-imprimir" class="boleta-wrapper shadow-lg">
+                
+                <div class="header-grid">
+                    <div class="company-info">
+                        <h1 class="company-logo">FLOANY VISIÓN</h1>
+                        <p class="company-sub">ÓPTICA Y CUIDADO VISUAL INTEGRAL</p>
+                        <div class="box-border">
+                            <div class="data-row"><span class="data-label">Dirección Matriz</span><span class="data-value">: Av. Próceres de la Independencia 1234 - SJL - Lima</span></div>
+                            <div class="data-row"><span class="data-label">Teléfono</span><span class="data-value">: (01) 345-6789 / 987-654-321</span></div>
+                        </div>
+                    </div>
+                    <div class="sunat-box box-border">
+                        <div>R.U.C. 20123456789</div>
+                        <h3>BOLETA DE VENTA ELECTRÓNICA</h3>
+                        <div style="font-size: 16px; font-weight: bold;">B001 - <span id="outNroCorrelativo">00059657</span></div>
+                    </div>
+                </div>
+
+                <div class="box-border client-grid">
+                    <div class="client-col">
+                        <div class="data-row"><span class="data-label">Señor(es)</span><span class="data-value" id="outNombre">: -</span></div>
+                        <div class="data-row"><span class="data-label">Fecha Emisión</span><span class="data-value" id="outFecha">: -</span></div>
+                        <div class="data-row"><span class="data-label">Dirección</span><span class="data-value" id="outDireccion">: -</span></div>
+                    </div>
+                    <div class="client-col">
+                        <div class="data-row"><span class="data-label">DNI / RUC</span><span class="data-value" id="outDNI">: -</span></div>
+                        <div class="data-row"><span class="data-label">Tipo Moneda</span><span class="data-value">: SOLES (PEN)</span></div>
+                    </div>
+                </div>
+
+                <table class="table-sunat">
+                    <thead>
+                        <tr>
+                            <th>CÓDIGO</th>
+                            <th>CANT.</th>
+                            <th class="desc-col">DESCRIPCIÓN</th>
+                            <th>UNID.</th>
+                            <th>%DSCTO</th>
+                            <th>DSCTO</th>
+                            <th>VALOR DE<br>VTA. UNIT.</th>
+                            <th>PRECIO DE<br>VTA. UNIT.</th>
+                            <th>VALOR TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>OFT-049</td>
+                            <td id="outCant">1.00</td>
+                            <td class="desc-col" id="outDesc">-</td>
+                            <td>UND</td>
+                            <td>0.00</td>
+                            <td class="monto-financiero">0.00</td>
+                            <td class="monto-financiero" id="outVvu">0.00</td>
+                            <td class="monto-financiero" id="outPvu">0.00</td>
+                            <td class="monto-financiero" id="outVtot">0.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="totals-container">
+                    <div class="amount-words" id="outLetras">SON: CERO Y 00/100 SOLES</div>
+                    <table class="totals-table">
+                        <tr><td class="total-label">OP. GRAVADA (S/)</td><td class="total-value" id="outOpGravada">0.00</td></tr>
+                        <tr><td class="total-label">OP. INAFECTA (S/)</td><td class="total-value">0.00</td></tr>
+                        <tr><td class="total-label">OP. EXONERADA (S/)</td><td class="total-value">0.00</td></tr>
+                        <tr><td class="total-label">DESCUENTOS (S/)</td><td class="total-value">0.00</td></tr>
+                        <tr><td class="total-label">IGV 18% (S/)</td><td class="total-value" id="outIGV">0.00</td></tr>
+                        <tr><td class="total-label">TOTAL A PAGAR (S/)</td><td class="total-value" id="outTotalPagar" style="font-size: 13px;">0.00</td></tr>
+                    </table>
+                </div>
+
+                <div class="box-border comments-box">
+                    <strong>Información Adicional:</strong><br>
+                    <span style="font-size: 9px;">Incorporado al Régimen de Buenos Contribuyentes. Garantía de montura de 6 meses por defectos de fábrica. No se aceptan devoluciones en lunas a medida.</span>
+                </div>
+
+                <div class="footer-grid">
+                    <div id="qrcode"></div>
+                    <div class="footer-text">
+                        Representación Impresa de la BOLETA DE VENTA ELECTRÓNICA<br>
+                        Consulte su comprobante en: <strong>www.sunat.gob.pe</strong> o <strong>www.floanyvision.com.pe/fe</strong><br>
+                        Autorizado mediante Resolución de Superintendencia Nro. 155-2017/SUNAT
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let qrCodeInstance = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        let hoy = new Date();
+        document.getElementById("outFecha").innerText = `: ${hoy.getDate().toString().padStart(2, '0')} - ${(hoy.getMonth()+1).toString().padStart(2, '0')} - ${hoy.getFullYear()}`;
+        
+        // Inicializar QR
+        qrCodeInstance = new QRCode(document.getElementById("qrcode"), {
+            width: 85,
+            height: 85,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.M
+        });
+        
+        calcularYGenerar();
+    });
+
+    // Algoritmo de Números a Letras (Hasta 999 para la óptica)
+    function numeroALetras(num) {
+        const unidades = ["", "UNO", "DOS", "TRES", "CUATRO", "CINCO", "SEIS", "SIETE", "OCHO", "NUEVE"];
+        const decenas = ["", "DIEZ", "VEINTE", "TREINTA", "CUARENTA", "CINCUENTA", "SESENTA", "SETENTA", "OCHENTA", "NOVENTA"];
+        const especiales = {11:"ONCE", 12:"DOCE", 13:"TRECE", 14:"CATORCE", 15:"QUINCE", 21:"VEINTIUNO", 22:"VEINTIDOS", 23:"VEINTITRES", 24:"VEINTICUATRO", 25:"VEINTICINCO", 26:"VEINTISEIS", 27:"VEINTISIETE", 28:"VEINTIOCHO", 29:"VEINTINUEVE"};
+        const centenas = ["", "CIENTO", "DOSCIENTOS", "TRESCIENTOS", "CUATROCIENTOS", "QUINIENTOS", "SEISCIENTOS", "SETECIENTOS", "OCHOCIENTOS", "NOVECIENTOS"];
+
+        let entero = Math.floor(num);
+        if (entero === 0) return "CERO";
+        if (entero === 100) return "CIEN";
+
+        let letras = "";
+        
+        let c = Math.floor(entero / 100);
+        let d = Math.floor((entero % 100) / 10);
+        let u = entero % 10;
+
+        letras += centenas[c] + (c > 0 && (d > 0 || u > 0) ? " " : "");
+
+        let du = (d * 10) + u;
+        if (du > 0) {
+            if (especiales[du]) {
+                letras += especiales[du];
+            } else {
+                letras += decenas[d] + (d > 0 && u > 0 && d >= 3 ? " Y " : "") + (d < 3 && d > 0 && u > 0 ? "" : unidades[u]);
+            }
+        }
+        return letras.trim();
+    }
+
+    async function calcularYGenerar() {
+        console.log("1. Botón presionado. Iniciando cálculos...");
+
+        // 1. Capturar datos del HTML
+        const dni = document.getElementById("inDNI").value;
+        const nombre = document.getElementById("inNombre").value;
+        const direccion = document.getElementById("inDireccion").value;
+        const desc = document.getElementById("inProducto").value;
+        const cant = parseFloat(document.getElementById("inCantidad").value);
+        const precioTotal = parseFloat(document.getElementById("inPrecio").value);
+
+        // 2. Matemáticas
+        const pvu = precioTotal / cant;
+        const vvu = pvu / 1.18;
+        const valorTotal = vvu * cant;
+        const igvTotal = valorTotal * 0.18;
+
+        // 3. Pintar en el DOM
+        document.getElementById("outDNI").innerText = `: ${dni}`;
+        document.getElementById("outNombre").innerText = `: ${nombre}`;
+        document.getElementById("outDireccion").innerText = `: ${direccion || '-'}`;
+        document.getElementById("outDesc").innerText = desc;
+        document.getElementById("outCant").innerText = cant.toFixed(2);
+        document.getElementById("outVvu").innerText = vvu.toFixed(2);
+        document.getElementById("outPvu").innerText = pvu.toFixed(2);
+        document.getElementById("outVtot").innerText = valorTotal.toFixed(2);
+        document.getElementById("outOpGravada").innerText = valorTotal.toFixed(2);
+        document.getElementById("outIGV").innerText = igvTotal.toFixed(2);
+        document.getElementById("outTotalPagar").innerText = precioTotal.toFixed(2);
+
+        let centavos = Math.round((precioTotal - Math.floor(precioTotal)) * 100);
+        document.getElementById("outLetras").innerText = `SON: ${numeroALetras(precioTotal)} Y ${centavos.toString().padStart(2, '0')}/100 SOLES`;
+
+        let qrData = `20123456789|03|B001|00059657|${igvTotal.toFixed(2)}|${precioTotal.toFixed(2)}|${new Date().toLocaleDateString()}|1|${dni}`;
+        if(typeof qrCodeInstance !== 'undefined' && qrCodeInstance !== null) {
+            qrCodeInstance.clear();
+            qrCodeInstance.makeCode(qrData);
+        }
+
+        console.log("2. Interfaz actualizada. Preparando datos para C#...");
+
+        // 4. PREPARAR DATOS PARA C#
+        const pedidoObj = {
+            Dni: dni,
+            NombreCliente: nombre,
+            Direccion: direccion,
+            ProductoDesc: desc,
+            Cantidad: cant,
+            ValorUnitario: vvu,
+            PrecioUnitario: pvu,
+            ValorTotal: valorTotal,
+            TotalIgv: igvTotal,
+            TotalPagar: precioTotal
+        };
+
+        console.log("3. Datos empaquetados:", pedidoObj);
+        console.log("4. Enviando petición a /Venta/EmitirBoletaSUNAT ...");
+
+        try {
+            const response = await fetch('/Venta/EmitirBoletaSUNAT', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pedidoObj)
+            });
+
+            console.log("5. El servidor C# respondió con estado:", response.status);
+
+            const data = await response.json();
+            console.log("6. Respuesta de C# descifrada:", data);
+            
+            if(data.success) {
+                alert("¡ÉXITO! " + data.message); 
+            } else {
+                alert("Error del servidor: " + data.message);
+            }
+        } catch (error) {
+            console.error("X. Error crítico conectando con el backend:", error);
+            alert("No se pudo conectar con el controlador C#.");
+        }
+    }
+    function descargarPDF() {
+        const boleta = document.getElementById('boleta-imprimir');
+        const opt = {
+            margin:       5,
+            filename:     'B001-00059657_FloanyVision.pdf',
+            image:        { type: 'jpeg', quality: 1 },
+            html2canvas:  { scale: 3, useCORS: true }, 
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(boleta).save();
+    }
+</script>
+
+</body>
+</html>
